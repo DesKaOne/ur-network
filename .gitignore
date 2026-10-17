@@ -1,1 +1,7 @@
 .urnetwork/jwt
+
+# Provider credentials, rotating-proxy configuration and local identities
+.env
+.env.*
+proxy.txt
+.urnetwork/
