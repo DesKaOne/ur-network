@@ -3,5 +3,5 @@
 # Provider credentials, rotating-proxy configuration and local identities
 .env
 .env.*
-proxy.txt
+*.txt
 .urnetwork/
