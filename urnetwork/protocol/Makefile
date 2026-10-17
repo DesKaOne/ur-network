@@ -1,0 +1,16 @@
+
+
+default: init build
+
+build: 
+	protoc -I=. --go_out=. --go_opt=paths=source_relative *.proto
+
+
+init:
+	go install google.golang.org/protobuf/cmd/protoc-gen-go	
+
+
+# protoc --proto_path=. `
+#  --go_out=. `
+#  --go_opt=paths=source_relative `
+#  audit.proto extender.proto frame.proto ip.proto test.proto transfer.proto
