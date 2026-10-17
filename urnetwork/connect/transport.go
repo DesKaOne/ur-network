@@ -1137,6 +1137,13 @@ func (self *PlatformTransport) runH3(ptMode TransportMode, initialTimeout time.D
 	}
 }
 
+// IsConnected reports an authenticated H1 session that is available for routing.
+// It is not a count of identities present in the management dashboard.
+func (self *PlatformTransport) IsConnected() bool {
+	connected, _ := self.modeAvailable(TransportModeH1)
+	return connected
+}
+
 func (self *PlatformTransport) Close() {
 	self.cancel()
 }
