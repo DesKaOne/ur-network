@@ -288,9 +288,9 @@ func managedProxyKey(p *connect.ProxySettings) string {
 	if p == nil {
 		return ""
 	}
-	key := string(p.Protocol) + " " + p.Address
+	key := string(p.Protocol) + "\x00" + p.Address
 	if p.Auth != nil {
-		key += " " + p.Auth.User + " " + p.Auth.Password
+		key += "\x00" + p.Auth.User + "\x00" + p.Auth.Password
 	}
 	return key
 }
@@ -300,21 +300,17 @@ func managedLoadSources(ctx context.Context, cfg managedProviderConfig) ([]*conn
 	if cfg.proxyListTXT != "" {
 		proxies, err := managedLoadFile(cfg.proxyListTXT)
 		if err != nil {
-			fmt.Printf("[proxy] file warning: %v
-", err)
+			fmt.Printf("[proxy] file warning: %v\n", err)
 		}
-		fmt.Printf("[proxy] file loaded: %d
-", len(proxies))
+		fmt.Printf("[proxy] file loaded: %d\n", len(proxies))
 		all = append(all, proxies...)
 	}
 	if cfg.proxyHubURL != "" {
 		proxies, err := managedFetchHub(ctx, cfg.proxyHubURL)
 		if err != nil {
-			fmt.Printf("[proxy] hub warning: %v
-", err)
+			fmt.Printf("[proxy] hub warning: %v\n", err)
 		}
-		fmt.Printf("[proxy] hub loaded: %d
-", len(proxies))
+		fmt.Printf("[proxy] hub loaded: %d\n", len(proxies))
 		all = append(all, proxies...)
 	}
 	seen := make(map[string]bool, len(all))
