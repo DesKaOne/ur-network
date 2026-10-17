@@ -16,14 +16,15 @@ import (
 	"time"
 
 	"deskaone-sdk/urnetwork/connect"
+
 	"golang.org/x/net/proxy"
 )
 
 type managedProviderConfig struct {
 	maxConnection int
-	concurrency int
-	proxyHubURL string
-	proxyListTXT string
+	concurrency   int
+	proxyHubURL   string
+	proxyListTXT  string
 }
 
 func providerDotEnv(path string) (map[string]string, error) {
@@ -79,8 +80,8 @@ func managedOptions(opts map[string]any) (managedProviderConfig, bool, error) {
 	}
 	flags := map[string]string{
 		"MAX_CONNECTION": "--max_connection",
-		"CONCURRENCY": "--concurrency",
-		"PROXY_HUB_URL": "--proxy_hub_url",
+		"CONCURRENCY":    "--concurrency",
+		"PROXY_HUB_URL":  "--proxy_hub_url",
 		"PROXY_LIST_TXT": "--proxy_list_txt",
 	}
 	enabled := false
@@ -106,8 +107,8 @@ func managedOptions(opts map[string]any) (managedProviderConfig, bool, error) {
 			return fallback, nil
 		}
 		v, err := strconv.Atoi(value)
-		if err != nil || v < 1 || v > 100 {
-			return 0, fmt.Errorf("%s must be 1..100 (URnetwork client limit applies)", key)
+		if err != nil || v < 1 || v > 1000 {
+			return 0, fmt.Errorf("%s must be 1..1000 (URnetwork client limit applies)", key)
 		}
 		return v, nil
 	}
@@ -124,9 +125,9 @@ func managedOptions(opts map[string]any) (managedProviderConfig, bool, error) {
 	}
 	return managedProviderConfig{
 		maxConnection: maxConnection,
-		concurrency: concurrency,
-		proxyHubURL: values["PROXY_HUB_URL"],
-		proxyListTXT: values["PROXY_LIST_TXT"],
+		concurrency:   concurrency,
+		proxyHubURL:   values["PROXY_HUB_URL"],
+		proxyListTXT:  values["PROXY_LIST_TXT"],
 	}, enabled, nil
 }
 
@@ -167,8 +168,8 @@ func managedParseProxy(raw string) (*connect.ProxySettings, error) {
 		return nil, errors.New("unsupported proxy protocol; use socks5, socks4 or http")
 	}
 	cfg := &connect.ProxySettings{
-		Network: "tcp",
-		Address: net.JoinHostPort(u.Hostname(), strconv.Itoa(port)),
+		Network:  "tcp",
+		Address:  net.JoinHostPort(u.Hostname(), strconv.Itoa(port)),
 		Protocol: proto,
 	}
 	if u.User != nil {
@@ -222,7 +223,7 @@ func managedFetchHub(ctx context.Context, baseURL string) ([]*connect.ProxySetti
 		base.Hostname() == "" || base.User != nil || base.RawQuery != "" || base.Fragment != "" {
 		return nil, errors.New("PROXY_HUB_URL must be an HTTP(S) base URL without credentials or query")
 	}
-	client := &http.Client{Timeout: 15*time.Second}
+	client := &http.Client{Timeout: 15 * time.Second}
 	var list []*connect.ProxySettings
 	var issues []error
 	protocols := []connect.ProxyProtocol{
@@ -253,7 +254,7 @@ func managedFetchHub(ctx context.Context, baseURL string) ([]*connect.ProxySetti
 			}
 			var data struct {
 				TotalPages int `json:"total_pages"`
-				Proxies []struct {
+				Proxies    []struct {
 					Address string `json:"address"`
 				} `json:"proxies"`
 			}
@@ -327,7 +328,6 @@ func managedLoadSources(ctx context.Context, cfg managedProviderConfig) ([]*conn
 	}
 	return result, nil
 }
-
 
 // providerProxyCheck only lists configured proxy endpoints; it never creates
 // URnetwork clients or verifies live IP/transport reachability.
