@@ -67,13 +67,14 @@ Usage:
     	[--api_url=<api_url>]
     	[--max-memory=<mem>]
     	[-v...]
-    provider provide [--port=<port>]
+    provider provide [--port=<port>] [--max_connection=<count>] [--concurrency=<count>] [--proxy_hub_url=<url>] [--proxy_list_txt=<path>]
         [--api_url=<api_url>]
         [--connect_url=<connect_url>]
         [--max-memory=<mem>]
         [--instances=<n>]
         [-v...]
     provider auth-provide ([<auth_code>] | --user_auth=<user_auth> [--password=<password>]) [-f]
+        [--max_connection=<count>] [--concurrency=<count>] [--proxy_hub_url=<url>] [--proxy_list_txt=<path>]
     	[--port=<port>]
         [--api_url=<api_url>]
         [--connect_url=<connect_url>]
@@ -98,6 +99,10 @@ Options:
     				                 password anyways, if you don't specify it using this option.
     -p --port=<port>                 Status server port [default: 0].
     --max-memory=<mem>               Set the maximum amount of memory in bytes, or the suffixes b, kib, mib, gib may be used [This is a soft limit].
+    --max_connection=<count>          Total managed provider clients (also MAX_CONNECTION; max 100).
+    --concurrency=<count>             Maximum concurrent provider startup attempts (also CONCURRENCY).
+    --proxy_hub_url=<url>             Fetch proxy list from ProxyHub (also PROXY_HUB_URL).
+    --proxy_list_txt=<path>           Read proxy list or Webshare rotating gateway (also PROXY_LIST_TXT).
     <key>                            Authentication key
 	--instances=<n>                  Number of instances to run per-proxy [default: 1].
     <proxy_user>                     SOCKS5 user
@@ -277,6 +282,15 @@ func auth(opts docopt.Opts) {
 }
 
 func provide(opts docopt.Opts) {
+	cfg, enabled, err := managedOptions(opts)
+	if err != nil {
+		fmt.Printf("Provider configuration error: %v\n", err)
+		return
+	}
+	if enabled {
+		provideManaged(opts, cfg)
+		return
+	}
 	port, _ := opts.Int("--port")
 
 	apiUrl, err := opts.String("--api_url")
