@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"runtime/debug"
 	"strconv"
 	"strings"
 	"sync"
@@ -209,6 +210,17 @@ func provideManaged(opts docopt.Opts, cfg managedProviderConfig) {
 	if err != nil || connectURL == "" {
 		connectURL = DefaultConnectUrl
 	}
+
+	if human, err := opts.String("--max-memory"); err == nil && human != "" {
+		mem, err := connect.ParseByteCount(human)
+		if err != nil {
+			fmt.Printf("[provider] invalid --max-memory: %v\n", err)
+			return
+		}
+		if 0 < mem {
+			debug.SetMemoryLimit(int64(mem))
+		}
+	}
 	networkBytes, err := os.ReadFile(filepath.Join(".urnetwork", "jwt"))
 	if err != nil {
 		fmt.Printf("[provider] missing network JWT: run go run ./cmd/urnetwork auth first (%v)\n", err)
@@ -252,11 +264,12 @@ func provideManaged(opts docopt.Opts, cfg managedProviderConfig) {
 				fmt.Printf("[provider %d] identity error: %v\n", index+1, err)
 				return
 			}
-			var selected *connect.ProxySettings
-			if len(proxies) > 0 {
-				selected = proxies[index%len(proxies)]
-			}
+			attempt := 0
 			for ctx.Err() == nil {
+				var selected *connect.ProxySettings
+				if len(proxies) > 0 {
+					selected = proxies[(index+attempt)%len(proxies)]
+				}
 				select {
 				case sem <- struct{}{}:
 				case <-ctx.Done():
@@ -273,11 +286,17 @@ func provideManaged(opts docopt.Opts, cfg managedProviderConfig) {
 						index+1, session.client.ClientId(), identity.InstanceID, route)
 					ticker := time.NewTicker(10*time.Second)
 					wasConnected := false
-					for {
+					lastConnectedAt := time.Now()
+					lastStatusLog := time.Now()
+					retryWithNext := false
+					for !retryWithNext {
 						connected := session.transport.IsConnected()
 						if connected != wasConnected {
 							wasConnected = connected
 							fmt.Printf("[provider %d] connected=%t\n", index+1, connected)
+						}
+						if connected {
+							lastConnectedAt = time.Now()
 						}
 						select {
 						case <-ctx.Done():
@@ -285,16 +304,26 @@ func provideManaged(opts docopt.Opts, cfg managedProviderConfig) {
 							session.Close()
 							return
 						case <-ticker.C:
-							if !connected {
+							if !connected && time.Since(lastStatusLog) >= 30*time.Second {
 								fmt.Printf("[provider %d] waiting for platform connection (check proxy availability)\n", index+1)
+								lastStatusLog = time.Now()
+							}
+							if !connected && len(proxies) > 1 && time.Since(lastConnectedAt) >= 90*time.Second {
+								fmt.Printf("[provider %d] disconnected for 90s; trying next proxy\n", index+1)
+								retryWithNext = true
 							}
 						}
 					}
+					ticker.Stop()
+					session.Close()
+					attempt++
+					continue
 				}
 				if ctx.Err() != nil {
 					return
 				}
 				fmt.Printf("[provider %d] init error: %v (retry in 30s)\n", index+1, err)
+				attempt++
 				select {
 				case <-ctx.Done():
 					return
