@@ -82,6 +82,7 @@ Usage:
         [-v...]
     provider proxy auth add [<key>] <proxy_user> <proxy_password> [-f]
     provider proxy auth remove [<key>] [--all]
+    provider proxy-check [--max_connection=<count>] [--concurrency=<count>] [--proxy_hub_url=<url>] [--proxy_list_txt=<path>]
     provider proxy add [<key_address>...] [--proxy_file=<proxy_file>] [-f]
     provider proxy remove [<key_address>...] [--all]
     
@@ -122,7 +123,9 @@ func main() {
 		os.Exit(1)
 	}
 
-	if proxy, _ := opts.Bool("proxy"); proxy {
+	if check, _ := opts.Bool("proxy-check"); check {
+		providerProxyCheck(opts)
+	} else if proxy, _ := opts.Bool("proxy"); proxy {
 		if auth, _ := opts.Bool("auth"); auth {
 			if add, _ := opts.Bool("add"); add {
 				proxyAuthAdd(opts)
