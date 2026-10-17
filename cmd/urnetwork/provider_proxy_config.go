@@ -331,3 +331,26 @@ func managedLoadSources(ctx context.Context, cfg managedProviderConfig) ([]*conn
 	}
 	return result, nil
 }
+
+
+// providerProxyCheck only lists configured proxy endpoints; it never creates
+// URnetwork clients or verifies live IP/transport reachability.
+func providerProxyCheck(opts map[string]any) {
+	cfg, _, err := managedOptions(opts)
+	if err != nil {
+		fmt.Printf("Configuration error: %v\n", err)
+		return
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
+	defer cancel()
+	proxies, err := managedLoadSources(ctx, cfg)
+	if err != nil {
+		fmt.Printf("Proxy load error: %v\n", err)
+		return
+	}
+	fmt.Printf("Proxy sources OK. Unique proxies: %d | MAX_CONNECTION=%d | CONCURRENCY=%d\n",
+		len(proxies), cfg.maxConnection, cfg.concurrency)
+	if len(proxies) == 0 {
+		fmt.Println("No proxy sources enabled: managed provider will connect directly.")
+	}
+}
